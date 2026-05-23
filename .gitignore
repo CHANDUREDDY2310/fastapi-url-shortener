@@ -1,0 +1,11 @@
+.venv/
+.venv_new/
+__pycache__/
+*.pyc
+.env
+shortener.db.venv/
+.venv_new/
+__pycache__/
+*.pyc
+.env
+shortener.db
