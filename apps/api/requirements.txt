@@ -73,7 +73,6 @@ starlette==1.0.1
 tensorboard==2.16.2
 tensorboard-data-server==0.7.2
 tensorflow==2.16.2
-tensorflow-intel==2.16.2
 tensorflow-io-gcs-filesystem==0.31.0
 termcolor==3.2.0
 tf-slim==1.1.0
