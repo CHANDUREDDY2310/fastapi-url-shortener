@@ -1,7 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON
-from datetime import datetime
-
+from sqlalchemy import Column, Integer, String, DateTime
 from app.db import Base
+import datetime
 
 
 class Link(Base):
@@ -9,34 +8,10 @@ class Link(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    code = Column(
-        String,
-        unique=True,
-        nullable=False,
-        index=True,
-    )
+    code = Column(String, unique=True, index=True, nullable=False)
 
-    long_url = Column(
-        String,
-        nullable=False,
-    )
+    long_url = Column(String, nullable=False)
 
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-    )
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-    created_by = Column(
-        String,
-        nullable=True,
-    )
-
-    expires_at = Column(
-        DateTime,
-        nullable=True,
-    )
-
-    tags = Column(
-        JSON,
-        nullable=True,
-    )
+    expires_at = Column(DateTime, nullable=True)

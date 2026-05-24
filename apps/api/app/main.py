@@ -1,22 +1,34 @@
-from datetime import datetime
+import logging
+from fastapi import FastAPI
 
-from fastapi import FastAPI, HTTPException, Depends, Request
-from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from app.config import settings
+from app.routers.links import router as links_router
+from app.routers.redirect import router as redirect_router
 
-from app.db import SessionLocal, get_db, Base, engine
-from app.models.link import Link
-from app.models.click_event import ClickEvent
-from app.schemas.link import CreateLinkRequest
-from app.services.links_service import (
-    create_link,
-    get_link_by_id,
-    list_links,
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper(), logging.INFO),
+    format="%(asctime)s %(levelname)s %(message)s"
 )
 
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logger.info("request received")
+
+    response = await call_next(request)
+
+    logger.info("response sent")
+
+    return response
+
+
+# register routers
+app.include_router(links_router)
+app.include_router(redirect_router)
 
 
 @app.get("/health")
@@ -24,120 +36,11 @@ def health():
     return {"ok": True}
 
 
-@app.post("/links")
-def create_short_link(
-    payload: CreateLinkRequest,
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    try:
-        link = create_link(db, payload)
-
-        short_url = f"{request.base_url}r/{link.code}"
-
-        return {
-            "id": link.id,
-            "code": link.code,
-            "short_url": short_url,
-            "long_url": link.long_url,
-            "expires_at": link.expires_at,
-            "tags": link.tags,
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e),
-        )
+@app.get("/live")
+def live():
+    return {"status": "alive"}
 
 
-@app.get("/links")
-def get_all_links(db: Session = Depends(get_db)):
-    try:
-        links = list_links(db)
-
-        return links
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e),
-        )
-
-
-@app.get("/links/{id}")
-def get_single_link(
-    id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    try:
-        link = get_link_by_id(db, id)
-
-        if not link:
-            raise HTTPException(
-                status_code=404,
-                detail="Link not found",
-            )
-
-        short_url = f"{request.base_url}r/{link.code}"
-
-        return {
-            "id": link.id,
-            "code": link.code,
-            "short_url": short_url,
-            "long_url": link.long_url,
-            "expires_at": link.expires_at,
-            "tags": link.tags,
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e),
-        )
-
-
-@app.get("/r/{code}")
-def redirect(
-    code: str,
-    user_agent: str = "",
-    referrer: str = "",
-):
-    db = SessionLocal()
-
-    try:
-        link = db.query(Link).filter(Link.code == code).first()
-
-        if not link:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Short code '{code}' not found",
-            )
-
-        if link.expires_at and link.expires_at < datetime.utcnow():
-            raise HTTPException(
-                status_code=410,
-                detail="This short link has expired",
-            )
-
-        click = ClickEvent(
-            link_id=link.id,
-            user_agent=user_agent or "unknown",
-            referrer=referrer or "direct",
-            ip_hash="",
-        )
-
-        db.add(click)
-        db.commit()
-
-        return RedirectResponse(
-            url=link.long_url,
-            status_code=302,
-        )
-
-    finally:
-        db.close()
+@app.get("/ready")
+def ready():
+    return {"status": "ready"}

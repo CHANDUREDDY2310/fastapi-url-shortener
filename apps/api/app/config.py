@@ -1,7 +1,6 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    port: int
+class Settings:
+    log_level: str = os.getenv("LOG_LEVEL", "info").lower()
 
 settings = Settings()

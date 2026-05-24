@@ -21,69 +21,41 @@ def create_short_link(
     try:
         link = create_link(db, payload)
 
-        short_url = f"{request.base_url}r/{link.short_code}"
+        short_url = f"{request.base_url}r/{link.code}"
 
         return {
             "id": link.id,
-            "short_code": link.short_code,
+            "code": link.code,
             "short_url": short_url,
             "long_url": link.long_url,
             "expires_at": link.expires_at,
-            "tags": link.tags,
         }
 
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to create short link",
-        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("")
 def get_all_links(db: Session = Depends(get_db)):
     try:
-        links = list_links(db)
-
-        return links
-
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to fetch links",
-        )
+        return list_links(db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{id}")
-def get_single_link(
-    id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    try:
-        link = get_link_by_id(db, id)
+def get_single_link(id: int, request: Request, db: Session = Depends(get_db)):
+    link = get_link_by_id(db, id)
 
-        if not link:
-            raise HTTPException(
-                status_code=404,
-                detail="Link not found",
-            )
+    if not link:
+        raise HTTPException(status_code=404, detail="Link not found")
 
-        short_url = f"{request.base_url}r/{link.short_code}"
+    short_url = f"{request.base_url}r/{link.code}"
 
-        return {
-            "id": link.id,
-            "short_code": link.short_code,
-            "short_url": short_url,
-            "long_url": link.long_url,
-            "expires_at": link.expires_at,
-            "tags": link.tags,
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to fetch link",
-        )
+    return {
+        "id": link.id,
+        "code": link.code,
+        "short_url": short_url,
+        "long_url": link.long_url,
+        "expires_at": link.expires_at,
+    }

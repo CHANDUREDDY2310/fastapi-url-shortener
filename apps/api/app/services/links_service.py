@@ -1,52 +1,33 @@
-import random
-import string
-
-from sqlalchemy.orm import Session
-
 from app.models.link import Link
-
-BASE62_ALPHABET = string.ascii_letters + string.digits
-CODE_LENGTH = 6
-
-
-def generate_base62_code(length: int = CODE_LENGTH) -> str:
-    return "".join(random.choices(BASE62_ALPHABET, k=length))
+from app.services.code_utils import generate_code
+from app.services.time_utils import normalize_expires_at
 
 
-def generate_unique_code(db: Session) -> str:
-    while True:
-        code = generate_base62_code()
-
-        existing = db.query(Link).filter(Link.code == code).first()
-
-        if not existing:
-            return code
-
-
-def create_link(db: Session, payload):
-    generated_code = generate_unique_code(db)
-
+# -------------------------
+# CREATE LINK
+# -------------------------
+def create_link(db, payload):
     link = Link(
-        code=generated_code,
+        code=generate_code(),
         long_url=payload.long_url,
-        expires_at=payload.expires_at,
-        tags=payload.tags,
+        expires_at=normalize_expires_at(payload.expires_at)
     )
 
     db.add(link)
     db.commit()
     db.refresh(link)
-
     return link
 
 
-def get_link_by_id(db: Session, link_id: int):
-    return db.query(Link).filter(Link.id == link_id).first()
+# -------------------------
+# GET BY ID
+# -------------------------
+def get_link_by_id(db, id: int):
+    return db.query(Link).filter(Link.id == id).first()
 
 
-def get_link_by_code(db: Session, code: str):
-    return db.query(Link).filter(Link.code == code).first()
-
-
-def list_links(db: Session):
+# -------------------------
+# LIST ALL LINKS
+# -------------------------
+def list_links(db):
     return db.query(Link).all()
